@@ -1,4 +1,4 @@
-# Readme for Kodilla task 9.4 - REST API
+# Readme for Kodilla task 13.2 - REST API SQLite
 This API has list of episodes of "The Mandalorian" series as JSON.
 
 Required liblaries are mentioned in requirements.txt
@@ -20,7 +20,7 @@ An episode of the series has data as below, stored as JSON:
 - "description"
 - "viewed"
 
-Main page might be on below address. Main page will load all data from "episodes" table.
+Main page using SQLite might be on below address. Main page will load all data from "episodes" table.
 > <http://127.0.0.1:5000/api/mando/epi/>
 
 An episode page (view/delete/update) might be on below address. Where at the end number represents an id (episode number).
