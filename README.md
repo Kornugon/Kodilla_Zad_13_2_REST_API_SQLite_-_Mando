@@ -26,6 +26,14 @@ Main page using SQLite might be on below address. Main page will load all data f
 An episode page (view/delete/update) might be on below address. Where at the end number represents an id (episode number).
 > <http://127.0.0.1:5000/api/mando/epi/1>
 
+To add episode use below address.
+<http://127.0.0.1:5000/api/mando/epi/>
+
+{
+- "title": "",
+- "description": ""
+
+}
 
 Tasks overview page might be on below address. Page will load all data from "tasks" table.
 > <http://127.0.0.1:5000/api/mando/task/>
@@ -33,10 +41,21 @@ Tasks overview page might be on below address. Page will load all data from "tas
 A task page (view/delete/update) might be on below address. Where at the end number represents an id (task id number).
 > <http://127.0.0.1:5000/api/mando/task/1>
 
-
 Tasks might be vievewd by status (open/done) on below address. Where at the end type status eg. "open".
 > <http://127.0.0.1:5000/api/mando/task/done>
 
+To add task use below address.
+<http://127.0.0.1:5000/api/mando/epi/>
+
+{
+- "episode_id": "",
+- "task": "",
+- "task_description": "",
+- "status": "",
+- "start_date": "",
+- "end_date": ""
+
+}
 
 Delete all data (from "tasks" & "episodes" tables at once) might be on below address. methods=['DELETE']
 > <http://127.0.0.1:5000/api/mando/delete/>

@@ -9,7 +9,7 @@ nie ma opcji zapisu do JSONa z poziomu tej appki.
 import os
 from flask import Flask, jsonify, abort, make_response, request
 
-from modelsSQLite import episodes
+from modelsSQLite import episodes, tasks, load_episodes_JSON_backup
 
 
 
@@ -32,20 +32,17 @@ def find_episode(error):
 
 @app.route("/api/mando/epi/", methods=["GET"])
 def get_episodes_list():
-    episodes.create_connection()
-    return jsonify(episodes.select_all("episodes"))
+    return jsonify(episodes.select_all())
 
 
 @app.route("/api/mando/task/", methods=["GET"])
 def get_tasks_list():
-    episodes.create_connection()
-    return jsonify(episodes.select_all("tasks"))
+    return jsonify(tasks.select_all())
 
 
 @app.route("/api/mando/epi/<int:episode_id>", methods=["GET"])
 def get_single_episode(episode_id):
-    episodes.create_connection()
-    episode = episodes.select_where("episodes", id=episode_id)
+    episode = episodes.select_where(id=episode_id)
     if not episode:
         abort(404)
     return jsonify({"episode": episode})
@@ -53,8 +50,7 @@ def get_single_episode(episode_id):
 
 @app.route("/api/mando/task/<int:id>", methods=["GET"])
 def get_single_task(id):
-    episodes.create_connection()
-    task = episodes.select_where("tasks", id=id)
+    task = tasks.select_where(id=id)
     if not task:
         abort(404)
     return jsonify({"task": task})
@@ -62,19 +58,47 @@ def get_single_task(id):
 
 @app.route("/api/mando/task/<status>", methods=["GET"])
 def get_task_by_status(status):
-    episodes.create_connection()
-    episodes.select_task_by_status(status)
-
-    task = episodes.select_where("tasks", status=status)
+    task = tasks.select_task_by_status(status)
     if not task:
         abort(404)
     return jsonify({"task": task})
 
 
+@app.route("/api/mando/epi/", methods=["POST"])
+def create_episode():
+    if not request.json or not 'title' in request.json:
+        abort(400)
+
+    data = request.json
+    title = data.get('title')
+    description = data.get('description')
+
+    episode = (title, description)
+    episodes.add_episode(episode)
+    return jsonify({'episode': episode}), 201
+
+
+@app.route("/api/mando/task/", methods=["POST"])
+def create_task():
+    if not request.json or not 'episode_id' in request.json:
+        abort(400)
+
+    data = request.json
+    episode_id = data.get('episode_id')
+    task = data.get('task')
+    task_description = data.get('task_description')
+    status = data.get('status')
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+
+    taski = (episode_id, task, task_description, status, start_date, end_date)
+
+    tasks.add_task(taski)
+    return jsonify({'task': taski}), 201
+
 @app.route("/api/mando/epi/<int:episode_id>", methods=["PUT"])
 def update_episode(episode_id):
-    episodes.create_connection()
-    episode = episodes.select_where("episodes", id=episode_id)
+    episode = episodes.select_where(id=episode_id)
     episode = episode[0]
     if not episode:
         abort(404)
@@ -91,16 +115,15 @@ def update_episode(episode_id):
     title = data.get('title', episode[1])
     description = data.get('description', episode[2])
     
-    episodes.update("episodes", id=episode_id, title=title, description=description)
+    episodes.update(id=episode_id, title=title, description=description)
     return jsonify({'episode': episode})
 
 
 @app.route("/api/mando/task/<int:id>", methods=["PUT"])
 def update_task(id):
-    episodes.create_connection()
-    tasks = episodes.select_where("tasks", id=id)
-    tasks = tasks[0]
-    if not tasks:
+    taski = tasks.select_where(id=id)
+    taski = taski[0]
+    if not taski:
         abort(404)
     if not request.json:
         abort(400)
@@ -116,31 +139,29 @@ def update_task(id):
         ]):
         abort(400)
 
-    episode_id = data.get('episode_id', tasks[1])
-    task = data.get('task', tasks[2])
-    task_description = data.get('task_description',tasks[3])
-    status = data.get('status', tasks[4])
-    start_date = data.get('start_date', tasks[5])
-    end_date = data.get('end_date', tasks[6])
+    episode_id = data.get('episode_id', taski[1])
+    task = data.get('task', taski[2])
+    task_description = data.get('task_description',taski[3])
+    status = data.get('status', taski[4])
+    start_date = data.get('start_date', taski[5])
+    end_date = data.get('end_date', taski[6])
     
-    episodes.update("tasks", id=id, episode_id=episode_id, task=task, task_description=task_description, status=status, start_date=start_date, end_date=end_date)
-    return jsonify({'task': tasks})
+    tasks.update(id=id, episode_id=episode_id, task=task, task_description=task_description, status=status, start_date=start_date, end_date=end_date)
+    return jsonify({'task': taski})
 
 
 @app.route("/api/mando/epi/<int:episode_id>", methods=['DELETE'])
 def delete_episode(episode_id):
-    episodes.create_connection()
-    episodes.delete_where("tasks", episode_id=episode_id)
-    result = episodes.delete_where("episodes", id=episode_id)
-    if not result:
+    result_1 = tasks.delete_where(episode_id=episode_id)
+    result_2 = episodes.delete_where(id=episode_id)
+    if not result_1 and not result_2:
         abort(404)
-    return jsonify({'result': result})
+    return jsonify({'result': [result_1, result_2]})
 
 
 @app.route("/api/mando/task/<int:id>", methods=['DELETE'])
 def delete_task(id):
-    episodes.create_connection()
-    result = episodes.delete_where("tasks", id=id)
+    result = tasks.delete_where(id=id)
     if not result:
         abort(404)
     return jsonify({'result': result})
@@ -148,53 +169,21 @@ def delete_task(id):
 
 @app.route("/api/mando/delete/", methods=['DELETE'])
 def delete_all():
-    episodes.create_connection()
-    episodes.delete_all("tasks")
-    result = episodes.delete_all("episodes")
-    if not result:
-        abort(404)
+    tasks.delete_all()
+    episodes.delete_all()
     return jsonify({'result': "Tables episodes and tasks cleared"})
 
 
 @app.route("/api/mando/restore/", methods=["GET"])
 def restore_all_from_JSON():
-    episodes.create_connection()
-    result = episodes.load_episodes_JSON_backup()
+    result = load_episodes_JSON_backup()
     return jsonify({'result': result})
-
-
-
 
 
 
 if __name__ == "__main__":
 
-    create_episodes_sql = """
-    -- episodes table
-    CREATE TABLE IF NOT EXISTS episodes (
-      id integer PRIMARY KEY,
-      title text NOT NULL,
-      description text NOT NULL
-        );
-    """
-
-    create_tasks_sql = """
-    -- tasks table
-    CREATE TABLE IF NOT EXISTS tasks (
-        id integer PRIMARY KEY,
-        episode_id integer NOT NULL,
-        task VARCHAR(250) NOT NULL,
-        task_description TEXT,
-        status VARCHAR(15) NOT NULL,
-        start_date text NOT NULL,
-        end_date text NOT NULL,
-        FOREIGN KEY (episode_id) REFERENCES episodes (id)
-    );
-    """
-
-    conn = episodes.create_connection()
-    episodes.execute_sql(create_episodes_sql)
-    episodes.execute_sql(create_tasks_sql)
-    conn.close()
+    episodes.execute_sql()
+    tasks.execute_sql()
 
     app.run(debug=True)
