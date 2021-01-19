@@ -45,7 +45,7 @@ Tasks might be vievewd by status (open/done) on below address. Where at the end 
 > <http://127.0.0.1:5000/api/mando/task/done>
 
 To add task use below address.
-<http://127.0.0.1:5000/api/mando/epi/>
+<http://127.0.0.1:5000/api/mando/task/>
 
 {
 - "episode_id": "",
